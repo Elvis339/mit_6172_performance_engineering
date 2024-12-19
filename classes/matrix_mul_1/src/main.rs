@@ -25,5 +25,5 @@ fn main() {
     }
 
     let duration = start.elapsed();
-    println!("{:.6} sec", duration.as_secs_f64());
+    println!("{} sec", duration.as_secs_f64());
 }
