@@ -6,3 +6,4 @@ matrix_mult
 hello
 
 *.build
+main.*

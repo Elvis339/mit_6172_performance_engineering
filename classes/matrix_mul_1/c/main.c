@@ -28,6 +28,7 @@ int main(int argc, const char *argv[]) {
   struct timeval start, end;
   gettimeofday(&start, NULL);
 
+  // two level tiling mat mul
   int s = 64;
   int t = 64;
 
