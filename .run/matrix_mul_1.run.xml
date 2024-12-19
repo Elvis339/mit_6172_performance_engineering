@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="matrix_mul_1" type="CppFileRunConfiguration" factoryName="CppFileRunConfiguration" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="mit_6172_performance_engineering" TARGET_NAME="matrix_mul_1" CONFIG_NAME="matrix_mul_1">
+    <option name="compilerFile" value="/opt/opencilk/bin/clang" />
+    <option name="compilerOptions" value="-O3 -fopencilk -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -o main.debug" />
+    <option name="sourceFile" value="classes/matrix_mul_1/c/main.c" />
+    <method v="2">
+      <option name="com.jetbrains.cidr.cpp.runfile.CppFileBuildBeforeRunTaskProvider$BasicBuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
