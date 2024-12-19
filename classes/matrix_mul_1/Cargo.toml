@@ -10,4 +10,4 @@ rand = "0.9.0-beta.1"
 # This optimization is achieved by treating the compilation as a single unit instead of splitting it into multiple parts
 [profile.release]
 codegen-units = 1
-lto = "thin"
+lto = "fat"
