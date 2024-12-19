@@ -16,14 +16,14 @@ fn main() {
     }
 
     let start = Instant::now();
-    for i in 0..N {
-        for j in 0..N {
-            for k in 0..N {
+    for k in 0..N {
+        for i in 0..N {
+            for j in 0..N {
                 c[i][j] += a[i][k] * b[k][j];
             }
         }
     }
 
     let duration = start.elapsed();
-    println!("{:.6}", duration.as_secs_f64());
+    println!("{:.6} sec", duration.as_secs_f64());
 }
