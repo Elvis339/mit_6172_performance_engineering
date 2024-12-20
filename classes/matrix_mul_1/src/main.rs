@@ -4,6 +4,7 @@ use std::time::Instant;
 
 fn main() {
     const N: usize = 4096;
+    const BLOCK_SIZE: usize = 32;
 
     let mut a = vec![vec![0.0; N]; N];
     let mut b = vec![vec![0.0; N]; N];
@@ -13,6 +14,7 @@ fn main() {
         for j in 0..N {
             a[i][j] = random::<f64>();
             b[i][j] = random::<f64>();
+            c[i][j] = 0.0;
         }
     }
 
