@@ -18,8 +18,8 @@ fn main() {
 
     let start = Instant::now();
 
-    c.par_iter_mut().enumerate().for_each(|(i, row)| {
-        for k in 0..N {
+    c.par_iter_mut().enumerate().for_each(|(k, row)| {
+        for i in 0..N {
             for j in 0..N {
                 row[j] += a[i][k] * b[k][j];
             }
