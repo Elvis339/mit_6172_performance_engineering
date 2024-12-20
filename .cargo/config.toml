@@ -1,0 +1,4 @@
+[build]
+rustflags = [
+    "-C", "target-cpu=native", # automatically detect and use the best available instruction set for CPU
+]
