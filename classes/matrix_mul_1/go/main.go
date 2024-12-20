@@ -68,7 +68,6 @@ func main() {
 	}
 
 	close(workChan)
-
 	start := time.Now()
 	for w := 0; w < numWorkers; w++ {
 		wg.Add(1)
