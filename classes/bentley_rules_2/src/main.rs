@@ -1,4 +1,5 @@
-use utils::{time_it};
+mod compressed_sparse_row;
+use utils::time_it;
 
 const SIZE: usize = 8192;
 
@@ -23,7 +24,11 @@ fn generate_matrices() -> (Vec<Vec<usize>>, Vec<Vec<usize>>) {
     for i in 0..SIZE {
         for j in 0..SIZE {
             // Create a sparse matrix with ~60% zeros
-            b[i][j] = if (i + j) % 3 == 0 { 0 } else { ((i + j) % 10) + 1 };
+            b[i][j] = if (i + j) % 3 == 0 {
+                0
+            } else {
+                ((i + j) % 10) + 1
+            };
         }
     }
 
