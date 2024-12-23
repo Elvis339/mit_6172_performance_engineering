@@ -1,0 +1,13 @@
+[package]
+name = "bit_hacks_3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+criterion.workspace = true
+rand = "0.9.0-beta.1"
+
+[[bench]]
+path = "src/bench/branch_predictability_optimization.rs"
+name = "branch"
+harness = false
