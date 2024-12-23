@@ -4,19 +4,16 @@
 #include <stdio.h>
 
 // merge arrays
-// __restrict keyword helps the compiler that the pointer points to one piece of data
-// helping it make optimizations
-static void merge(long* __restrict C,
-                 long* __restrict A,
-                 long* __restrict B,
-                 size_t na,
-                 size_t nb)
-{
-  // 4) Predictable branch because we know whether na is greater then nb beforehand
-  // also, most of the time it's going to return true and in that case you're entering the execution
+// __restrict keyword helps the compiler that the pointer points to one piece of
+// data helping it make optimizations
+static void merge(long *__restrict C, long *__restrict A, long *__restrict B,
+                  size_t na, size_t nb) {
+  // 4) Predictable branch because we know whether na is greater then nb
+  // beforehand also, most of the time it's going to return true and in that
+  // case you're entering the execution
   while (na > 0 && nb > 0) {
-    // 3) Unpredictable branch because we don't know the values of A and B beforehand
-    // The hardware can't do prefetching efficiently
+    // 3) Unpredictable branch because we don't know the values of A and B
+    // beforehand The hardware can't do prefetching efficiently
     if (*A <= *B) {
       *C++ = *A++;
       na--;
@@ -34,7 +31,8 @@ static void merge(long* __restrict C,
 
   // 1) This branch is predictable it's going to return true most of the time
   // except for the last time it's only going to return false
-  // when `nb == 0` and at that point you're going to execute this once and then you're done
+  // when `nb == 0` and at that point you're going to execute this once and then
+  // you're done
   while (nb > 0) {
     *C++ = *B++;
     nb--;
@@ -42,12 +40,8 @@ static void merge(long* __restrict C,
 }
 
 // branchless merge arrays using bit trics (min)
-static void merge_branchless(long* __restrict C,
-                 long* __restrict A,
-                 long* __restrict B,
-                 size_t na,
-                 size_t nb)
-{
+static void merge_branchless(long *__restrict C, long *__restrict A,
+                             long *__restrict B, size_t na, size_t nb) {
   while (na > 0 && nb > 0) {
     // Min bit-trick
     // this optmization works well on some machines but on modern machines
@@ -56,8 +50,10 @@ static void merge_branchless(long* __restrict C,
     long cmp = (*A <= *B);
     long min = *B ^ ((*B ^ *A) & (-cmp));
     *C++ += min;
-    A += cmp; na -= cmp;
-    B += !cmp; nb -= !cmp;
+    A += cmp;
+    na -= cmp;
+    B += !cmp;
+    nb -= !cmp;
   }
 
   while (na > 0) {
@@ -74,7 +70,8 @@ static void merge_branchless(long* __restrict C,
 int main() {
   /*
   In C, arrays and pointers have a very close relationship due to array decay.
-  When you pass an array to a function, it automatically "decays" into a pointer to its first element.
+  When you pass an array to a function, it automatically "decays" into a pointer
+  to its first element.
   ```
     long a[] = {3, 12, 19, 46};   // This is an array
     long* ptr = a;                 // This is valid - 'a' decays to &a[0]

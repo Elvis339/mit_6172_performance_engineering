@@ -6,3 +6,6 @@ matrix_mult
 hello
 
 *.build
+*.s
+
+*build.*

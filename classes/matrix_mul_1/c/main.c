@@ -1,10 +1,10 @@
 //
 // Created by Elvis Sabanovic on 19/12/2024.
 //
-#include <stdlib.h>
-#include <stdio.h>
 #include "sys/time.h"
 #include <cilk/cilk.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define N 4096
 
@@ -32,8 +32,8 @@ int main(int argc, const char *argv[]) {
   int s = 64;
   int t = 64;
 
-  cilk_for (int ih = 0; ih < N; ih += s) {
-    cilk_for (int jh = 0; jh < N; jh += s) {
+  cilk_for(int ih = 0; ih < N; ih += s) {
+    cilk_for(int jh = 0; jh < N; jh += s) {
       for (int kh = 0; kh < N; kh += s) {
         for (int im = 0; im < s; im += t) {
           for (int jm = 0; jm < s; jm += t) {
@@ -41,8 +41,9 @@ int main(int argc, const char *argv[]) {
               for (int il = 0; il < t; ++il) {
                 for (int kl = 0; kl < t; ++kl) {
                   for (int jl = 0; jl < t; ++jl) {
-                    C[ih+im+il][jh+jm+jl] +=
-                      A[ih+im+il][kh+km+kl] * B[kh+km+kl][jh+jm+jl];
+                    C[ih + im + il][jh + jm + jl] +=
+                        A[ih + im + il][kh + km + kl] *
+                        B[kh + km + kl][jh + jm + jl];
                   }
                 }
               }
