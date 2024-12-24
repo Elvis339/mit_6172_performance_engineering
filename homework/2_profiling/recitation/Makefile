@@ -17,13 +17,13 @@ qsort.o: qsort.c
 	$(CC) $(CFLAGS) -c qsort.c 
 
 isort: isort.o qsort.o
-	$(CC) -o isort isort.o qsort.o $(LDFLAGS)
+	$(CC) -o isort isort.o qsort.o
 
 sum.o: sum.c 
 	$(CC) $(CFLAGS) -c sum.c 
 
 sum: sum.o
-	$(CC) -o sum sum.o $(LDFLAGS)
+	$(CC) -o sum sum.o
 
 clean:
 	rm -f isort sum *.o *.gcda *.gcno *.gcov perf.data */perf.data cachegrind.out.*
