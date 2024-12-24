@@ -19,19 +19,51 @@ fn isort(arr: &mut [u32]) {
     }
 }
 
-#[inline(always)]
 fn isort_unroll(arr: &mut [u32]) {
+    let len = arr.len();
 
+    for i in 1..len {
+        let val = arr[i];
+        let mut j = i;
+
+        unsafe {
+            let ptr = arr.as_mut_ptr();
+
+            'unroll: {
+                while j >= 4 {
+                    if *ptr.add(j - 4) <= val {
+                        break 'unroll;
+                    }
+
+                    *ptr.add(j) = *ptr.add(j - 1);
+                    *ptr.add(j - 3) = *ptr.add(j - 4);
+                    *ptr.add(j - 1) = *ptr.add(j - 2);
+                    *ptr.add(j - 2) = *ptr.add(j - 3);
+                    j -= 4;
+                }
+            }
+
+            // help branch prediction
+            if j <= 0 {
+                break
+            }
+
+            while j > 0 {
+                if *ptr.add(j - 1) <= val {
+                    break;
+                }
+                *ptr.add(j) = *ptr.add(j - 1);
+                j -= 1;
+            }
+
+            *ptr.add(j) = val;
+        }
+    }
 }
-
-fn sort_block(arr: &mut [u32]) {
-
-}
+fn sort_block(_arr: &mut [u32]) {}
 
 #[inline(always)]
-fn isort_block(arr: &mut [u32]) {
-
-}
+fn isort_block(_arr: &mut [u32]) {}
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -88,6 +120,6 @@ fn main() {
             }
         }
         let end = start.elapsed();
-        println!("{} ms", end.as_millis());
+        println!("{} s", end.as_secs_f64());
     }
 }
