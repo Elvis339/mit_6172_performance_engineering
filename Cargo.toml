@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["classes/*"]
+members = ["classes/*", "homework/2_profiling/recitation/rust"]
 
 [workspace.dependencies]
 criterion = "0.5.1"
