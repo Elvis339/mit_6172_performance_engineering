@@ -9,6 +9,7 @@ hello
 *.s
 
 *build.*
+bin/
 
 *.o
 isort
