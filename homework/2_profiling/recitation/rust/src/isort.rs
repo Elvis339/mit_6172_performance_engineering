@@ -5,7 +5,6 @@ const CACHE_LINE_SIZE: usize = 64;
 // the size of u32 is always 4 bytes
 const BLOCK_SIZE: usize = CACHE_LINE_SIZE / 4;
 
-#[inline(always)]
 fn isort(arr: &mut [u32]) {
     let n = arr.len();
 
@@ -43,7 +42,7 @@ fn isort_unroll(arr: &mut [u32]) {
                 }
             }
 
-            // help branch prediction
+            // help branch prediction for below
             if j <= 0 {
                 break
             }
@@ -60,9 +59,7 @@ fn isort_unroll(arr: &mut [u32]) {
         }
     }
 }
-fn sort_block(_arr: &mut [u32]) {}
 
-#[inline(always)]
 fn isort_block(_arr: &mut [u32]) {}
 
 fn main() {
