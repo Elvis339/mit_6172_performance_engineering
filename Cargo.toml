@@ -5,3 +5,5 @@ members = ["classes/*", "homework/2_profiling/recitation/rust"]
 [workspace.dependencies]
 criterion = "0.5.1"
 rayon = "1.10.0"
+rand_core = "0.6.4"
+rand = "0.8.5"
