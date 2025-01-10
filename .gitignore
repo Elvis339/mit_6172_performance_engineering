@@ -15,3 +15,6 @@ bin/
 isort
 *.dSYM
 *.ll
+*.so
+
+venv
