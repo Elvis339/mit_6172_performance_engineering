@@ -23,9 +23,9 @@ impl AtomicUsize {
     pub fn store(&self, v: usize) {
         unsafe {
             asm!(
-            "lock; xchg [{address}], {v}",
-            address = in(reg) self.inner.get(),
-            v = in(reg) v
+                "lock; xchg [{address}], {v}",
+                address = in(reg) self.inner.get(),
+                v = in(reg) v
             );
         }
     }
@@ -34,9 +34,9 @@ impl AtomicUsize {
     pub fn fetch_add(&self, mut v: usize) -> usize {
         unsafe {
             asm!(
-            "lock; xadd [{address}], {v}",
-            address = in(reg) self.inner.get(),
-            v = inout(reg) v,
+                "lock; xadd [{address}], {v}",
+                address = in(reg) self.inner.get(),
+                v = inout(reg) v,
             );
         }
 
@@ -47,13 +47,38 @@ impl AtomicUsize {
     pub fn swap(&self, mut v: usize) -> usize {
         unsafe {
             asm!(
-            "lock; xchg [{var}], {v}",
-            var = in(reg) self.inner.get(),
-            v = inout(reg) v
+                "lock; xchg [{var}], {v}",
+                var = in(reg) self.inner.get(),
+                v = inout(reg) v
             );
         }
 
         v
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub fn compare_exchange(&self, current: usize, new: usize) -> Result<usize, usize> {
+        let zf: u8; // the value of the zero flag
+        let result: usize; // the value of the destination before the operation
+
+        unsafe {
+            asm!(
+                "lock; cmpxchg [{address}], {new}", // the operation
+                "mov {result}, rax", // store the accumulator value in `result`
+                "sete {zf}", // store the ZF value in `zf`
+                address = in(reg) self.inner.get(),
+                new = in(reg) new,
+                zf = out(reg_byte) zf,
+                result = out(reg) result,
+                in("rax") current, // place `current` in the accumulator to start
+            );
+        }
+
+        if zf == 1 {
+            Ok(result)
+        } else {
+            Err(result)
+        }
     }
 
     // #[cfg(target_arch = "aarch64")]
@@ -119,6 +144,11 @@ impl AtomicUsize {
     //         prev
     //     }
     // }
+
+    #[cfg(target_arch = "aarch64")]
+    pub fn compare_exchange(&self, current: usize, new: usize) -> Result<usize, usize> {
+        todo!("aarch64 not supported yet")
+    }
 }
 
 #[cfg(test)]
@@ -164,5 +194,14 @@ mod tests {
         counter.fetch_add(1);
 
         assert_eq!(counter.load(), 11);
+    }
+
+    #[test]
+    fn test_compare_exchange() {
+        let counter = AtomicUsize::new(0);
+        counter.compare_exchange(0, 1).unwrap();
+
+        assert_eq!(counter.load(), 1);
+        assert_eq!(counter.compare_exchange(0, 1).unwrap_err(), 1);
     }
 }
