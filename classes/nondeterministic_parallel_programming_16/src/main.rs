@@ -4,11 +4,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use std::sync::atomic::AtomicUsize;
 
 fn main() {
     let lock = Arc::new(Mutex::new(0));
-    let a = AtomicUsize::new(0);
 
     // visual test to show how mutex works in Rust
     // i wanted to test mutex fairness
