@@ -163,7 +163,6 @@ mod tests {
 
         counter.fetch_add(1);
 
-        println!("{:?}", counter.load());
         assert_eq!(counter.load(), 11);
     }
 }

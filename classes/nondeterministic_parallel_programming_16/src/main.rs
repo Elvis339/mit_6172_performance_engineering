@@ -10,6 +10,9 @@ fn main() {
     let lock = Arc::new(Mutex::new(0));
     let a = AtomicUsize::new(0);
 
+    // visual test to show how mutex works in Rust
+    // i wanted to test mutex fairness
+    // rust mutex relies on OS
     for i in 0..8 {
         let lock = Arc::clone(&lock);
         thread::spawn(move || {
