@@ -81,73 +81,105 @@ impl AtomicUsize {
         }
     }
 
-    // #[cfg(target_arch = "aarch64")]
-    // pub fn store(&self, v: usize) {
-    //     unsafe {
-    //         asm!(
-    //         // load the new value into a register
-    //         "2:",
-    //         // Store exclusive - attempts to store the value
-    //         "stlr {v}, [{address}]",
-    //         address = in(reg) self.inner.get(),
-    //         v = in(reg) v,
-    //         );
-    //     }
-    // }
-    //
-    // #[cfg(target_arch = "aarch64")]
-    // pub fn fetch_add(&self, v: usize) -> usize {
-    //     unsafe {
-    //         let mut prev: usize;
-    //         let mut status: u32;
-    //         asm!(
-    //         // Loop until the store is successful
-    //         "2:",
-    //         // Load exclusive
-    //         "ldxr {prev}, [{address}]",
-    //         // Add to get new value
-    //         "add {tmp}, {prev}, {v}",
-    //         // Store exclusive
-    //         "stxr {status}, {tmp}, [{address}]",
-    //         // Check if store was successful
-    //         "cbnz {status}, 2b",
-    //         address = in(reg) self.inner.get(),
-    //         v = in(reg) v,
-    //         status = out(reg) status,
-    //         prev = out(reg) prev,
-    //         tmp = out(reg) _,
-    //         options(nostack)
-    //         );
-    //         prev
-    //     }
-    // }
-    //
-    // #[cfg(target_arch = "aarch64")]
-    // pub fn swap(&self, v: usize) -> usize {
-    //     unsafe {
-    //         let mut prev: usize;
-    //         let mut status: usize;
-    //         asm!(
-    //         "2:",
-    //         // Load exclusive
-    //         "ldxr {prev}, [{address}]",
-    //         // Store exclusive - try to store new value
-    //         "stxr {status}, {v}, [{address}]",
-    //         // If store failed, try again
-    //         "cbnz {status}, 2b",
-    //         address = in(reg) self.inner.get(),
-    //         v = in(reg) v,
-    //         status = out(reg) status,
-    //         prev = out(reg) prev,
-    //         options(nostack)
-    //         );
-    //         prev
-    //     }
-    // }
+    #[cfg(target_arch = "aarch64")]
+    pub fn store(&self, v: usize) {
+        unsafe {
+            asm!(
+                "stlr {value}, [{address}]",
+                address = in(reg) self.inner.get(),
+                value = in(reg) v,
+                options(nostack, preserves_flags)
+            );
+        }
+    }
+
+    // https://developer.arm.com/documentation/dui0801/l/A64-Data-Transfer-Instructions/LDADDA--LDADDAL--LDADD--LDADDL--LDADDAL--LDADD--LDADDL--A64-
+    // ldadda -> Load-Add with Acquire-Release
+    #[cfg(target_arch = "aarch64")]
+    pub fn fetch_add(&self, mut v: usize) -> usize {
+        let mut prev: usize;
+        unsafe {
+            asm!(
+                "ldadda {value}, {prev}, [{address}]",
+                address = in(reg) self.inner.get(),
+                value = inout(reg) v,
+                prev = out(reg) prev,
+                options(nostack, preserves_flags)
+            );
+        }
+        prev
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    pub fn swap(&self, mut v: usize) -> usize {
+        let mut prev: usize;
+        let mut success: u32; // Ensure `success` is a 32-bit register
+        unsafe {
+            loop {
+                asm!(
+                    "ldxr {prev}, [{address}]",      // Load the current value atomically
+                    "stxr {success:w}, {v}, [{address}]", // Attempt to store the new value
+                    address = in(reg) self.inner.get(),
+                    prev = out(reg) prev,
+                    v = in(reg) v,
+                    success = out(reg) success,
+                    options(nostack, preserves_flags)
+                );
+
+                if success == 0 {
+                    break;
+                }
+            }
+        }
+        prev
+    }
 
     #[cfg(target_arch = "aarch64")]
     pub fn compare_exchange(&self, current: usize, new: usize) -> Result<usize, usize> {
-        todo!("aarch64 not supported yet")
+        const MAX_RETRIES: usize = 1000; // Limit to prevent infinite retries
+        let mut retries = 0;
+        let mut prev: usize; // The value loaded from the address
+        let mut success: u32; // Status of the exclusive store operation (success = 0)
+
+        unsafe {
+            loop {
+                // Atomically load the current value
+                asm!(
+                "ldaxr {prev}, [{address}]", // Load the current value at address
+                address = in(reg) self.inner.get(),
+                prev = out(reg) prev,
+                options(nostack, preserves_flags)
+                );
+
+                // Check if the loaded value matches the expected value
+                if prev != current {
+                    return Err(prev); // Return the loaded value if comparison fails
+                }
+
+                // Atomically attempt to store the new value
+                asm!(
+                "stlxr {success:w}, {new}, [{address}]", // Attempt to store the new value
+                address = in(reg) self.inner.get(),
+                new = in(reg) new,
+                success = out(reg) success,
+                options(nostack, preserves_flags)
+                );
+
+                // If the store succeeded, return success
+                if success == 0 {
+                    return Ok(prev); // Successfully swapped, return the previous value
+                }
+
+                // Retry with backoff if store failed
+                retries += 1;
+                if retries > MAX_RETRIES {
+                    panic!("compare_exchange failed after maximum retries");
+                }
+
+                // Yield or sleep to reduce contention
+                std::thread::yield_now(); // Yield to other threads
+            }
+        }
     }
 }
 
@@ -155,6 +187,13 @@ impl AtomicUsize {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn test_store() {
+        let counter = AtomicUsize::new(0);
+        counter.store(10);
+        assert_eq!(counter.load(), 10);
+    }
 
     #[test]
     fn test_fetch_add() {
@@ -180,28 +219,30 @@ mod tests {
 
     #[test]
     fn test_swap() {
-        let counter = Arc::new(AtomicUsize::new(0));
+        let atomic = Arc::new(AtomicUsize::new(42));
+        assert_eq!(atomic.load(), 42);
 
-        {
-            let ctr = Arc::clone(&counter);
-            std::thread::spawn(move || {
-                ctr.swap(10);
-            })
-            .join()
-            .unwrap();
-        }
+        let atomic_cloned = Arc::clone(&atomic);
+        let handle = std::thread::spawn(move || {
+            atomic_cloned.swap(100);
+        });
 
-        counter.fetch_add(1);
+        let prev = atomic.swap(200);
+        assert_eq!(atomic.load(), 200);
 
-        assert_eq!(counter.load(), 11);
+        handle.join().unwrap();
+        assert_eq!(atomic.load(), 100);
     }
-
     #[test]
     fn test_compare_exchange() {
-        let counter = AtomicUsize::new(0);
-        counter.compare_exchange(0, 1).unwrap();
+        let atomic = AtomicUsize::new(42);
 
-        assert_eq!(counter.load(), 1);
-        assert_eq!(counter.compare_exchange(0, 1).unwrap_err(), 1);
+        // Test a successful compare_exchange
+        assert_eq!(atomic.compare_exchange(42, 100), Ok(42));
+        assert_eq!(atomic.load(), 100);
+
+        // Test a failed compare_exchange
+        assert_eq!(atomic.compare_exchange(42, 200), Err(100));
+        assert_eq!(atomic.load(), 100);
     }
 }
