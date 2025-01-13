@@ -2,33 +2,33 @@ use crate::atomic_usize::AtomicUsize;
 use std::cell::UnsafeCell;
 use std::ops::{Deref, DerefMut};
 
-// Very inefficient Mutex implementations that keeps spinning in order to acquire lock
+// Very inefficient spin lock Mutex implementations that keeps spinning in order to acquire lock
 // wasting CPU resources
 
 // Rust std::sync::Mutex is implement via system call https://man7.org/linux/man-pages/man3/pthread_mutex_lock.3p.html
-pub struct Mutex<T> {
+pub struct SpinLock<T> {
     inner: UnsafeCell<T>,
     status: AtomicUsize,
 }
 
-// MutexGuard is a type which is given to the locking thread to gain access to the underlying data
+// SpinLockGuard is a type which is given to the locking thread to gain access to the underlying data
 // It's useful because we can automatically unlock the mutex when this struct is dropped or poison
 // the mutex if the thread panics. This pattern is called (RAII)
 // Constructing the guard locks the mutex
 // Droping the guard unlocks the mutex
-pub struct MutexGuard<'a, T> {
-    mutex: &'a Mutex<T>,
+pub struct SpinLockGuard<'a, T> {
+    mutex: &'a SpinLock<T>,
 }
 
 #[derive(Debug)]
-pub enum MutexError {
+pub enum SpinLockError {
     Poisoned,
 }
 
-unsafe impl<T: Send> Send for Mutex<T> {}
-unsafe impl<T: Send> Sync for Mutex<T> {}
+unsafe impl<T: Send> Send for SpinLock<T> {}
+unsafe impl<T: Send> Sync for SpinLock<T> {}
 
-impl<T> Mutex<T> {
+impl<T> SpinLock<T> {
     pub const fn new(inner: T) -> Self {
         Self {
             inner: UnsafeCell::new(inner),
@@ -36,23 +36,23 @@ impl<T> Mutex<T> {
         }
     }
 
-    pub fn lock(&self) -> Result<MutexGuard<T>, MutexError> {
+    pub fn lock(&self) -> Result<SpinLockGuard<T>, SpinLockError> {
         loop {
             match self.status.compare_exchange(0, 1) {
                 Ok(_) => break, // locked mutex
-                Err(2) => return Err(MutexError::Poisoned),
+                Err(2) => return Err(SpinLockError::Poisoned),
                 Err(_) => continue, // mutex locked, try again
             }
         }
 
-        Ok(MutexGuard { mutex: self })
+        Ok(SpinLockGuard { mutex: self })
     }
 
     // there's no need to explicitly implement unlock because lock returns MutexGuard
-    // and MutexGuard implements drop
+    // and SpinLockGuard implements drop
 }
 
-impl<T> Deref for MutexGuard<'_, T> {
+impl<T> Deref for SpinLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -60,13 +60,13 @@ impl<T> Deref for MutexGuard<'_, T> {
     }
 }
 
-impl<T> DerefMut for MutexGuard<'_, T> {
+impl<T> DerefMut for SpinLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *self.mutex.inner.get() }
     }
 }
 
-impl<T> Drop for MutexGuard<'_, T> {
+impl<T> Drop for SpinLockGuard<'_, T> {
     fn drop(&mut self) {
         if std::thread::panicking() {
             self.mutex.status.store(2);
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_mutex() {
-        let mutex = Arc::new(Mutex::new(0_usize));
+        let mutex = Arc::new(SpinLock::new(0_usize));
         let mut threads = Vec::new();
 
         for _ in 0..4 {
@@ -111,7 +111,7 @@ mod tests {
     // so slow...
     #[test]
     fn test_measure() {
-        let lock = Arc::new(Mutex::new(0));
+        let lock = Arc::new(SpinLock::new(0));
 
         for i in 0..8 {
             let lock = Arc::clone(&lock);
