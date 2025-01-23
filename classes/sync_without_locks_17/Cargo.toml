@@ -1,0 +1,14 @@
+[package]
+name = "sync_without_locks_17"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+path = "src/peterson.rs"
+name = "peterson"
+
+[[bin]]
+path = "src/atomic.rs"
+name = "atomic"
+
+[dependencies]
