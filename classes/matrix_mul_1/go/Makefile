@@ -18,19 +18,32 @@ LDFLAGS=-w -s
 #                # 4 is currently the maximum practical level
 GCFLAGS=-B -l=4
 
+NAIVE=./cmd/naive
+OPT=./cmd/opt
+
 # Safe run
-run-safe:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run main.go \
-		-trimpath \
-		-ldflags="$(LDFLAGS)" \
-		-o $(BINARY_NAME)
+run-naive-safe:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run $(NAIVE) \
+	   -trimpath \
+	   -ldflags="$(LDFLAGS)"
+
+run-opt-safe:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run $(OPT) \
+	   -trimpath \
+	   -ldflags="$(LDFLAGS)"
 
 # Performance (unsafe)
-run-fast:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run main.go \
-		-trimpath \
-		-ldflags="$(LDFLAGS)" \
-		-gcflags="$(GCFLAGS)"
+run-naive-fast:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run $(NAIVE) \
+	   -trimpath \
+	   -ldflags="$(LDFLAGS)" \
+	   -gcflags="$(GCFLAGS)"
+
+run-opt-fast:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) run $(OPT) \
+	   -trimpath \
+	   -ldflags="$(LDFLAGS)" \
+	   -gcflags="$(GCFLAGS)"
 
 
-.PHONY: build build-safe build-fast clean test bench fmt run run-fast
+.PHONY: run-naive-safe run-opt-safe run-naive-fast run-opt-fast

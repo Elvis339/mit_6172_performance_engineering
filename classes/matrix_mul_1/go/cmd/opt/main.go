@@ -13,19 +13,13 @@ const (
 	BlockSize = 64 // L1 cache
 )
 
-func initializeSlices() ([][]float64, [][]float64, [][]float64) {
-	a := make([][]float64, N)
-	b := make([][]float64, N)
-	c := make([][]float64, N)
+func initializeSlices() (*[N][N]float64, *[N][N]float64, *[N][N]float64) {
+	a := new([N][N]float64)
+	b := new([N][N]float64)
+	c := new([N][N]float64)
 
-	for i := range a {
-		a[i] = make([]float64, N)
-		b[i] = make([]float64, N)
-		c[i] = make([]float64, N)
-	}
-
-	for i := 0; i < N; i++ {
-		for j := 0; j < N; j++ {
+	for i := range N {
+		for j := range N {
 			a[i][j] = rand.Float64()
 			b[i][j] = rand.Float64()
 			c[i][j] = 0.0
@@ -36,7 +30,11 @@ func initializeSlices() ([][]float64, [][]float64, [][]float64) {
 }
 
 // processTile multiplies a block/tile of the matrices
-func processTile(a, b, c [][]float64, startI, startJ, startK, endI, endJ, endK int) {
+func processTile(a, b, c *[N][N]float64, startI, startJ, startK, endI, endJ, endK int) {
+	_ = a[startI][endI-1]
+	_ = b[startK][endK-1]
+	_ = c[startJ][endJ-1]
+
 	for i := startI; i < endI; i++ {
 		for k := startK; k < endK; k++ {
 			for j := startJ; j < endJ; j++ {
@@ -59,16 +57,6 @@ func main() {
 	}
 	workChan := make(chan workItem, nBlocks*nBlocks*nBlocks)
 
-	for iBlock := 0; iBlock < nBlocks; iBlock++ {
-		for kBlock := 0; kBlock < nBlocks; kBlock++ {
-			for jBlock := 0; jBlock < nBlocks; jBlock++ {
-				workChan <- workItem{iBlock, jBlock, kBlock}
-			}
-		}
-	}
-
-	close(workChan)
-	start := time.Now()
 	for w := 0; w < numWorkers; w++ {
 		wg.Add(1)
 		go func() {
@@ -98,7 +86,19 @@ func main() {
 		}()
 	}
 
+	// fan-out
+	for iBlock := 0; iBlock < nBlocks; iBlock++ {
+		for kBlock := 0; kBlock < nBlocks; kBlock++ {
+			for jBlock := 0; jBlock < nBlocks; jBlock++ {
+				workChan <- workItem{iBlock, jBlock, kBlock}
+			}
+		}
+	}
+
+	close(workChan)
+	start := time.Now()
 	wg.Wait()
 	end := time.Since(start)
 	fmt.Printf("Tiled multiplication took: %.2f seconds\n", end.Seconds())
+	fmt.Printf("c[0][0] = %f\n", c[0][0])
 }
